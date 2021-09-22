@@ -21,6 +21,7 @@ Following codes load required R packages for this project.
 ```{r, warning=FALSE, message=FALSE}
 library(tidyverse)
 library(skimr)
+library(agridat)
 
 ```
 
@@ -35,10 +36,23 @@ This is a side project to demonstrate data cleaning skills. I will clean a publi
 
 
 
+How the original format is like? 
+
+```{r}
+data("bridges.cucumber", package = "agridat")
+bridges.cucumber
+
+```
+
+
+
 
 ## DATA IMPORT
 
 ```{r}
+
+table1 <- read.csv()
+
 
 
 ```
