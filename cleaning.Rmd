@@ -49,11 +49,3 @@ bridges.cucumber
 
 ## DATA IMPORT
 
-```{r}
-
-table1 <- read.csv()
-
-
-
-```
-
