@@ -29,8 +29,9 @@ library(skimr)
 
 Data cleaning, manipulation and transformation are very important in data science. They process datasets and convert them into a format of analysis-ready for later analysis such as visualisation or creating predictive models. 
 
-This is a side project to demonstrate my relevant skills in this aspect. I will clean a public dataset from "agridate" R package, named "bridges.cucumber". This dataset has actually been cleaned but I downloaded the cleaned format, devastate, ruin and mess it. 
+This is a side project to demonstrate data cleaning skills. I will clean a public dataset from "agridate" R package, named "bridges.cucumber". This dataset has actually been cleaned but I downloaded the cleaned format, devastate, ruin and mess it. The single cleaned table has been spitted into 4 tables and with a variability of cleaning tasks. 
 
+![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic_4Tables.JPG)
 
 
 
