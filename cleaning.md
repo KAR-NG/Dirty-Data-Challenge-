@@ -8,6 +8,7 @@ Kar Ng
 -   [3 DATA IMPORT](#3-data-import)
 -   [4 DATA CLEANING](#4-data-cleaning)
     -   [4.1 Cleaning table 1](#41-cleaning-table-1)
+    -   [4.2 Cleaning table 2](#42-cleaning-table-2)
 
 ------------------------------------------------------------------------
 
@@ -105,41 +106,25 @@ table4 <- read.csv("cucum4.csv", fileEncoding = "UTF-8-BOM")
 
 ### 4.1 Cleaning table 1
 
-Tasks identify:
+Tasks identified:
 
--   Rename the column names
--   Split the first column into two
--   Strings manipulation in the first column
--   Fill up the missing values of the first column
+-   Rename the column names.  
+-   Split the first column into two.  
+-   Strings manipulation in the first column.  
+-   Fill up the missing values of the first column.  
 -   Convert the *4000* in the “row” into 4, according to adjacent values
-    of this column.
+    of this column.  
 -   Convert the *1000* in the “column” into 1, according to adjacent
     values of this column.
 
-``` r
-table1 
-```
+**Structural conversion**
 
-    ##    Llocation.genotype rowrow column yield.g
-    ## 1      Clemson-Dasher      1      3    44.2
-    ## 2      Clemson-Dasher      2      4    54.1
-    ## 3                   -      3      2    47.2
-    ## 4      Clemson-Dasher   4000      1    36.7
-    ## 5    Clemson-Guardian      1      4    33.0
-    ## 6    CLEMSON-Guardian      2      2    13.6
-    ## 7    Clemson-Guardian      3      1    44.1
-    ## 8    Clemson-Guardian      4      3    35.8
-    ## 9   Clem_son-Poinsett      1   1000    11.5
-    ## 10   Clemson-Poinsett      2      3    22.4
-    ## 11   Clemson-Poinsett      3      4    30.3
-    ## 12   CLEMSON-poinsett      4      2    21.5
-    ## 13        Clem-Sprint      1      2    15.1
-    ## 14     Clemson-Sprint      2      1    20.3
-    ## 15          Clemson-s      3      3    41.3
-    ## 16          Clemson-s      4      4    27.1
+In the column of “loc”, I have to convert all strings into “Clemson”.
+For the column of “gen”, I need to convert those string according to the
+most likely adjacent value.
 
 ``` r
-tbl1 <- table1 %>%
+table1 <- table1 %>%
   separate("Llocation.genotype", into = c("loc", "gen"), sep = "-") %>% 
   rename(row = rowrow,
          col = column,
@@ -148,7 +133,7 @@ tbl1 <- table1 %>%
          gen = as.factor(gen))
   
 
-summary(tbl1)
+summary(table1)
 ```
 
     ##        loc           gen         row               col              yield      
@@ -160,28 +145,70 @@ summary(tbl1)
     ##                s       :2   Max.   :4000.00   Max.   :1000.00   Max.   :54.10  
     ##                Sprint  :2
 
+**Cleaning the strings**
+
 ``` r
-tbl1 %>% 
-  mutate(loc = replace(loc, loc == "Clem", "Hi"))
+table1 <- table1 %>% 
+  mutate(loc = replace(loc, loc == "", "Clemson"),   # I am already sure that this blank cell is "Clemson".
+         loc = replace(loc, loc == "Clem", "Clemson"),
+         loc = replace(loc, loc == "Clem_son", "Clemson"),
+         loc = replace(loc, loc == "CLEMSON", "Clemson"),
+         loc = as.character(loc),                    # for factor's levels cleaning. 
+         gen = as.character(gen),                    # To use case when, variable has to be character
+         gen = case_when(gen == "" ~ "Dasher",       # Same nature as replace, I know this blank is "Dasher".
+                         gen == "poinsett" ~ "Poinsett",
+                         gen == "s" ~ "Sprint",
+                         TRUE ~ gen)) %>% 
+  mutate_if(is.character, as.factor)
+
+summary(table1)
 ```
 
-    ## Warning in `[<-.factor`(`*tmp*`, list, value = "Hi"): invalid factor level, NA
-    ## generated
+    ##       loc           gen         row               col              yield      
+    ##  Clemson:16   Dasher  :4   Min.   :   1.00   Min.   :   1.00   Min.   :11.50  
+    ##               Guardian:4   1st Qu.:   1.75   1st Qu.:   2.00   1st Qu.:21.20  
+    ##               Poinsett:4   Median :   2.50   Median :   3.00   Median :31.65  
+    ##               Sprint  :4   Mean   : 252.25   Mean   :  64.94   Mean   :31.14  
+    ##                            3rd Qu.:   3.25   3rd Qu.:   4.00   3rd Qu.:42.00  
+    ##                            Max.   :4000.00   Max.   :1000.00   Max.   :54.10
 
-    ##         loc      gen  row  col yield
-    ## 1   Clemson   Dasher    1    3  44.2
-    ## 2   Clemson   Dasher    2    4  54.1
-    ## 3                       3    2  47.2
-    ## 4   Clemson   Dasher 4000    1  36.7
-    ## 5   Clemson Guardian    1    4  33.0
-    ## 6   CLEMSON Guardian    2    2  13.6
-    ## 7   Clemson Guardian    3    1  44.1
-    ## 8   Clemson Guardian    4    3  35.8
-    ## 9  Clem_son Poinsett    1 1000  11.5
-    ## 10  Clemson Poinsett    2    3  22.4
-    ## 11  Clemson Poinsett    3    4  30.3
-    ## 12  CLEMSON poinsett    4    2  21.5
-    ## 13     <NA>   Sprint    1    2  15.1
-    ## 14  Clemson   Sprint    2    1  20.3
-    ## 15  Clemson        s    3    3  41.3
-    ## 16  Clemson        s    4    4  27.1
+**Cleaning outlier values in row and col**
+
+``` r
+table1 <- table1 %>% 
+  mutate(row = replace(row, row == 4000, 4),
+         col = replace(col, col == 1000, 1))
+  
+summary(table1)
+```
+
+    ##       loc           gen         row            col           yield      
+    ##  Clemson:16   Dasher  :4   Min.   :1.00   Min.   :1.00   Min.   :11.50  
+    ##               Guardian:4   1st Qu.:1.75   1st Qu.:1.75   1st Qu.:21.20  
+    ##               Poinsett:4   Median :2.50   Median :2.50   Median :31.65  
+    ##               Sprint  :4   Mean   :2.50   Mean   :2.50   Mean   :31.14  
+    ##                            3rd Qu.:3.25   3rd Qu.:3.25   3rd Qu.:42.00  
+    ##                            Max.   :4.00   Max.   :4.00   Max.   :54.10
+
+### 4.2 Cleaning table 2
+
+``` r
+summary(table2)
+```
+
+    ##        X          Llocation           genotype             rowrow     
+    ##  Min.   : 1.00   Length:14          Length:14          Min.   :1.000  
+    ##  1st Qu.: 4.25   Class :character   Class :character   1st Qu.:1.250  
+    ##  Median : 7.50   Mode  :character   Mode  :character   Median :2.000  
+    ##  Mean   : 7.50                                         Mean   :2.357  
+    ##  3rd Qu.:10.75                                         3rd Qu.:3.000  
+    ##  Max.   :14.00                                         Max.   :4.000  
+    ##                                                                       
+    ##    colu....mn       yield.x         yield_y         yield_z     
+    ##  Min.   :1.000   Min.   :34.70   Min.   :24.67   Min.   :30.75  
+    ##  1st Qu.:1.250   1st Qu.:37.52   1st Qu.:29.13   1st Qu.:34.00  
+    ##  Median :2.000   Median :49.39   Median :36.57   Median :37.57  
+    ##  Mean   :2.357   Mean   :47.33   Mean   :36.28   Mean   :37.30  
+    ##  3rd Qu.:3.000   3rd Qu.:53.55   3rd Qu.:40.24   3rd Qu.:40.88  
+    ##  Max.   :4.000   Max.   :61.48   Max.   :50.79   Max.   :43.30  
+    ##                  NA's   :9       NA's   :9       NA's   :10
