@@ -32,7 +32,7 @@ Data cleaning, manipulation and transformation are very important in data scienc
 
 This is a side project to demonstrate data cleaning skills. I will clean a public dataset from "agridate" R package, named "bridges.cucumber". This dataset has actually been cleaned but I downloaded the cleaned format, devastate, ruin and mess it. The single cleaned table has been spitted into 4 tables and with a variability of cleaning tasks. 
 
-![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic_4Tables.JPG)
+![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic0_4Tables.JPG)
 
 
 
@@ -68,7 +68,11 @@ table4 <- read.csv("cucum4.csv", fileEncoding = "UTF-8-BOM")
 
 ### 4.1 Cleaning table 1
 
-Tasks identified:
+Main tasks identified from table 1:
+
+![]()
+
+
 
 * Rename the column names.  
 * Split the first column into two.  
@@ -78,9 +82,8 @@ Tasks identified:
 * Convert the *1000* in the "column" into 1,  according to adjacent values of this column.  
 
 
-**Structural conversion**
 
-In the column of "loc", I have to convert all strings into "Clemson". For the column of "gen", I need to convert those string according to the most likely adjacent value.  
+**Structural and variable names conversion**
 
 ```{r}
 
@@ -89,13 +92,14 @@ table1 <- table1 %>%
   rename(row = rowrow,
          col = column,
          yield = yield.g) %>% 
-  mutate(loc = as.factor(loc),
-         gen = as.factor(gen))
+  mutate_if(is.character, as.factor)
   
 
 summary(table1)
 
 ```
+
+In the column of "loc", I have to convert all strings into "Clemson". For the column of "gen", I need to convert those undesirable strings according to the most likely adjacent values. 
 
 **Cleaning the strings**
 
@@ -117,6 +121,8 @@ summary(table1)
 
 ```
 
+Next, I will clean up the 4000 and 1000 in the "row" and "col" columns.
+ 
 **Cleaning outlier values in row and col**
 
 ```{r}
@@ -129,10 +135,22 @@ summary(table1)
 
 ```
 
+Cleaning of table 1 has now been completed. 
+
 ### 4.2 Cleaning table  2
 
+Main tasks identified:
+
+* Remove the first column.  
+* Rename column names.  
+* Clean the strings in location and genotype.
+* Combine yield_x, yield_7, and yield_z
+
 ```{r}
-summary(table2)
+table2
 
 ```
+
+
+
 

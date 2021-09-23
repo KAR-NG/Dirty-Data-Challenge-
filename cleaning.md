@@ -37,7 +37,7 @@ This dataset has actually been cleaned but I downloaded the cleaned
 format, devastate, ruin and mess it. The single cleaned table has been
 spitted into 4 tables and with a variability of cleaning tasks.
 
-![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic_4Tables.JPG)
+![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic0_4Tables.JPG)
 
 How the original format is like?
 
@@ -106,7 +106,9 @@ table4 <- read.csv("cucum4.csv", fileEncoding = "UTF-8-BOM")
 
 ### 4.1 Cleaning table 1
 
-Tasks identified:
+Main tasks identified from table 1:
+
+![]()
 
 -   Rename the column names.  
 -   Split the first column into two.  
@@ -117,11 +119,7 @@ Tasks identified:
 -   Convert the *1000* in the “column” into 1, according to adjacent
     values of this column.
 
-**Structural conversion**
-
-In the column of “loc”, I have to convert all strings into “Clemson”.
-For the column of “gen”, I need to convert those string according to the
-most likely adjacent value.
+**Structural and variable names conversion**
 
 ``` r
 table1 <- table1 %>%
@@ -129,8 +127,7 @@ table1 <- table1 %>%
   rename(row = rowrow,
          col = column,
          yield = yield.g) %>% 
-  mutate(loc = as.factor(loc),
-         gen = as.factor(gen))
+  mutate_if(is.character, as.factor)
   
 
 summary(table1)
@@ -144,6 +141,10 @@ summary(table1)
     ##  CLEMSON : 2   Poinsett:3   3rd Qu.:   3.25   3rd Qu.:   4.00   3rd Qu.:42.00  
     ##                s       :2   Max.   :4000.00   Max.   :1000.00   Max.   :54.10  
     ##                Sprint  :2
+
+In the column of “loc”, I have to convert all strings into “Clemson”.
+For the column of “gen”, I need to convert those undesirable strings
+according to the most likely adjacent values.
 
 **Cleaning the strings**
 
@@ -172,6 +173,8 @@ summary(table1)
     ##                            3rd Qu.:   3.25   3rd Qu.:   4.00   3rd Qu.:42.00  
     ##                            Max.   :4000.00   Max.   :1000.00   Max.   :54.10
 
+Next, I will clean up the 4000 and 1000 in the “row” and “col” columns.
+
 **Cleaning outlier values in row and col**
 
 ``` r
@@ -190,25 +193,33 @@ summary(table1)
     ##                            3rd Qu.:3.25   3rd Qu.:3.25   3rd Qu.:42.00  
     ##                            Max.   :4.00   Max.   :4.00   Max.   :54.10
 
+Cleaning of table 1 has now been completed.
+
 ### 4.2 Cleaning table 2
 
+Main tasks identified:
+
+-   Remove the first column.  
+-   Rename column names.  
+-   Clean the strings in location and genotype.
+-   Combine yield\_x, yield\_7, and yield\_z
+
 ``` r
-summary(table2)
+table2
 ```
 
-    ##        X          Llocation           genotype             rowrow     
-    ##  Min.   : 1.00   Length:14          Length:14          Min.   :1.000  
-    ##  1st Qu.: 4.25   Class :character   Class :character   1st Qu.:1.250  
-    ##  Median : 7.50   Mode  :character   Mode  :character   Median :2.000  
-    ##  Mean   : 7.50                                         Mean   :2.357  
-    ##  3rd Qu.:10.75                                         3rd Qu.:3.000  
-    ##  Max.   :14.00                                         Max.   :4.000  
-    ##                                                                       
-    ##    colu....mn       yield.x         yield_y         yield_z     
-    ##  Min.   :1.000   Min.   :34.70   Min.   :24.67   Min.   :30.75  
-    ##  1st Qu.:1.250   1st Qu.:37.52   1st Qu.:29.13   1st Qu.:34.00  
-    ##  Median :2.000   Median :49.39   Median :36.57   Median :37.57  
-    ##  Mean   :2.357   Mean   :47.33   Mean   :36.28   Mean   :37.30  
-    ##  3rd Qu.:3.000   3rd Qu.:53.55   3rd Qu.:40.24   3rd Qu.:40.88  
-    ##  Max.   :4.000   Max.   :61.48   Max.   :50.79   Max.   :43.30  
-    ##                  NA's   :9       NA's   :9       NA's   :10
+    ##     X Llocation            genotype rowrow colu....mn yield.x yield_y yield_z
+    ## 1   1    Tifton              Dasher      1          3 53.5463      NA      NA
+    ## 2   2 Ti   fton      Dasher              2          4 37.5220      NA      NA
+    ## 3   3    Tifton              Dasher      3          2 49.3943      NA      NA
+    ## 4   4  Tiftaaon              Dasher      4          1 61.4758      NA      NA
+    ## 5   5    Tifton            Guardian      1          4 34.7026      NA      NA
+    ## 6   6       Tif            Guardian      2          2      NA 29.1300      NA
+    ## 7   7    Tifton            Guardian      3          1      NA 40.2423      NA
+    ## 8   8    Tifton                          4          3      NA 50.7930      NA
+    ## 9   9         t        Poi    nsett      1          1      NA 36.5749      NA
+    ## 10 10         T            Poinsett      2          3      NA 24.6696      NA
+    ## 11 11         T            Poinsett      3          4      NA      NA 30.7489
+    ## 12 12    Tifton                          4          2      NA      NA 40.0661
+    ## 13 13    Tifton              Sprint      1          2      NA      NA 35.0771
+    ## 14 14    Tifton              Sprint      2          1      NA      NA 43.3040
