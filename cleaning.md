@@ -3,15 +3,17 @@ Dirty Data Cleaning and Transformation
 Kar Ng
 2021
 
--   [R PACKAGES](#r-packages)
--   [INTRODUCTION](#introduction)
--   [DATA IMPORT](#data-import)
+-   [1 R PACKAGES](#1-r-packages)
+-   [2 INTRODUCTION](#2-introduction)
+-   [3 DATA IMPORT](#3-data-import)
+-   [4 DATA CLEANING](#4-data-cleaning)
+    -   [4.1 Cleaning table 1](#41-cleaning-table-1)
 
 ------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 
-## R PACKAGES
+## 1 R PACKAGES
 
 Following codes load required R packages for this project.
 
@@ -21,7 +23,7 @@ library(skimr)
 library(agridat)
 ```
 
-## INTRODUCTION
+## 2 INTRODUCTION
 
 Data cleaning, manipulation and transformation are very important in
 data science. They process datasets and convert them into a format of
@@ -77,4 +79,109 @@ bridges.cucumber
     ## 31  Tifton   Sprint   3   3 38.4251
     ## 32  Tifton   Sprint   4   4 39.9119
 
-## DATA IMPORT
+It is a dataset that record the experimental result of a cucumber with
+variables of loc (location), gen (genotype), row (row position of the
+trial block), col (column position of the trial block) and lastly, the
+yield.
+
+This purpose of this project is to show the R codes used to convert the
+4 messy tables into this final analysis-ready format.
+
+## 3 DATA IMPORT
+
+Following codes import the 4 tables.
+
+``` r
+table1 <- read.csv("cucum1.csv", fileEncoding = "UTF-8-BOM")
+
+table2 <- read.csv("cucum2.csv", fileEncoding = "UTF-8-BOM")
+
+table3 <- read.csv("cucum3.csv", fileEncoding = "UTF-8-BOM")
+
+table4 <- read.csv("cucum4.csv", fileEncoding = "UTF-8-BOM")
+```
+
+## 4 DATA CLEANING
+
+### 4.1 Cleaning table 1
+
+Tasks identify:
+
+-   Rename the column names
+-   Split the first column into two
+-   Strings manipulation in the first column
+-   Fill up the missing values of the first column
+-   Convert the *4000* in the “row” into 4, according to adjacent values
+    of this column.
+-   Convert the *1000* in the “column” into 1, according to adjacent
+    values of this column.
+
+``` r
+table1 
+```
+
+    ##    Llocation.genotype rowrow column yield.g
+    ## 1      Clemson-Dasher      1      3    44.2
+    ## 2      Clemson-Dasher      2      4    54.1
+    ## 3                   -      3      2    47.2
+    ## 4      Clemson-Dasher   4000      1    36.7
+    ## 5    Clemson-Guardian      1      4    33.0
+    ## 6    CLEMSON-Guardian      2      2    13.6
+    ## 7    Clemson-Guardian      3      1    44.1
+    ## 8    Clemson-Guardian      4      3    35.8
+    ## 9   Clem_son-Poinsett      1   1000    11.5
+    ## 10   Clemson-Poinsett      2      3    22.4
+    ## 11   Clemson-Poinsett      3      4    30.3
+    ## 12   CLEMSON-poinsett      4      2    21.5
+    ## 13        Clem-Sprint      1      2    15.1
+    ## 14     Clemson-Sprint      2      1    20.3
+    ## 15          Clemson-s      3      3    41.3
+    ## 16          Clemson-s      4      4    27.1
+
+``` r
+tbl1 <- table1 %>%
+  separate("Llocation.genotype", into = c("loc", "gen"), sep = "-") %>% 
+  rename(row = rowrow,
+         col = column,
+         yield = yield.g) %>% 
+  mutate(loc = as.factor(loc),
+         gen = as.factor(gen))
+  
+
+summary(tbl1)
+```
+
+    ##        loc           gen         row               col              yield      
+    ##          : 1           :1   Min.   :   1.00   Min.   :   1.00   Min.   :11.50  
+    ##  Clem    : 1   Dasher  :3   1st Qu.:   1.75   1st Qu.:   2.00   1st Qu.:21.20  
+    ##  Clem_son: 1   Guardian:4   Median :   2.50   Median :   3.00   Median :31.65  
+    ##  Clemson :11   poinsett:1   Mean   : 252.25   Mean   :  64.94   Mean   :31.14  
+    ##  CLEMSON : 2   Poinsett:3   3rd Qu.:   3.25   3rd Qu.:   4.00   3rd Qu.:42.00  
+    ##                s       :2   Max.   :4000.00   Max.   :1000.00   Max.   :54.10  
+    ##                Sprint  :2
+
+``` r
+tbl1 %>% 
+  mutate(loc = replace(loc, loc == "Clem", "Hi"))
+```
+
+    ## Warning in `[<-.factor`(`*tmp*`, list, value = "Hi"): invalid factor level, NA
+    ## generated
+
+    ##         loc      gen  row  col yield
+    ## 1   Clemson   Dasher    1    3  44.2
+    ## 2   Clemson   Dasher    2    4  54.1
+    ## 3                       3    2  47.2
+    ## 4   Clemson   Dasher 4000    1  36.7
+    ## 5   Clemson Guardian    1    4  33.0
+    ## 6   CLEMSON Guardian    2    2  13.6
+    ## 7   Clemson Guardian    3    1  44.1
+    ## 8   Clemson Guardian    4    3  35.8
+    ## 9  Clem_son Poinsett    1 1000  11.5
+    ## 10  Clemson Poinsett    2    3  22.4
+    ## 11  Clemson Poinsett    3    4  30.3
+    ## 12  CLEMSON poinsett    4    2  21.5
+    ## 13     <NA>   Sprint    1    2  15.1
+    ## 14  Clemson   Sprint    2    1  20.3
+    ## 15  Clemson        s    3    3  41.3
+    ## 16  Clemson        s    4    4  27.1

@@ -61,8 +61,7 @@ table2 <- read.csv("cucum2.csv", fileEncoding = "UTF-8-BOM")
 table3 <- read.csv("cucum3.csv", fileEncoding = "UTF-8-BOM")
 
 table4 <- read.csv("cucum4.csv", fileEncoding = "UTF-8-BOM")
-table2 <- read.csv("cucum2.csv",
-                   fileEncoding = "UTF-8-BOM")
+
 ```
 
 ## 4 DATA CLEANING
@@ -73,13 +72,38 @@ Tasks identify:
 
 * Rename the column names
 * Split the first column into two
-* Strings manipulation
-<!-- * Convert the *4000* in the "row" into 4, according to adjacent values of this column.  -->
-* Convert the *1000* in the "column" into 1
+* Strings manipulation in the first column
+* Fill up the missing values of the first column 
+* Convert the *4000* in the "row" into 4, according to adjacent values of this column. 
+* Convert the *1000* in the "column" into 1,  according to adjacent values of this column.
 
 ```{r}
 table1 
 
 ```
+
+```{r}
+
+tbl1 <- table1 %>%
+  separate("Llocation.genotype", into = c("loc", "gen"), sep = "-") %>% 
+  rename(row = rowrow,
+         col = column,
+         yield = yield.g) %>% 
+  mutate(loc = as.factor(loc),
+         gen = as.factor(gen))
+  
+
+summary(tbl1)
+
+```
+
+
+```{r}
+tbl1 %>% 
+  mutate(loc = replace(loc, loc == "Clem", "Hi"))
+
+
+```
+
 
 
