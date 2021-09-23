@@ -14,7 +14,7 @@ always_allow_html: yes
 
 ***
 
-## R PACKAGES
+## 1 R PACKAGES
 
 Following codes load required R packages for this project.
 
@@ -26,7 +26,7 @@ library(agridat)
 ```
 
 
-## INTRODUCTION
+## 2 INTRODUCTION
 
 Data cleaning, manipulation and transformation are very important in data science. They process datasets and convert them into a format of analysis-ready for later analysis such as visualisation or creating predictive models. 
 
@@ -44,8 +44,42 @@ bridges.cucumber
 
 ```
 
+It is a dataset that record the experimental result of a cucumber with variables of loc (location), gen (genotype), row (row position of the trial block), col (column position of the trial block) and lastly, the yield.  
+
+This purpose of this project is to show the R codes used to convert the 4 messy tables into this final analysis-ready format. 
 
 
+## 3 DATA IMPORT
 
-## DATA IMPORT
+Following codes import the 4 tables. 
+
+```{r}
+table1 <- read.csv("cucum1.csv", fileEncoding = "UTF-8-BOM")
+
+table2 <- read.csv("cucum2.csv", fileEncoding = "UTF-8-BOM")
+
+table3 <- read.csv("cucum3.csv", fileEncoding = "UTF-8-BOM")
+
+table4 <- read.csv("cucum4.csv", fileEncoding = "UTF-8-BOM")
+table2 <- read.csv("cucum2.csv",
+                   fileEncoding = "UTF-8-BOM")
+```
+
+## 4 DATA CLEANING
+
+### 4.1 Cleaning table 1
+
+Tasks identify:
+
+* Rename the column names
+* Split the first column into two
+* Strings manipulation
+<!-- * Convert the *4000* in the "row" into 4, according to adjacent values of this column.  -->
+* Convert the *1000* in the "column" into 1
+
+```{r}
+table1 
+
+```
+
 
