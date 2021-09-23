@@ -16,6 +16,8 @@ Kar Ng
 
 ------------------------------------------------------------------------
 
+![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic4_thumbnail.JPG)
+
 ------------------------------------------------------------------------
 
 ## 1 R PACKAGES
@@ -32,23 +34,24 @@ library(agridat)
 
 Data cleaning, manipulation and transformation are very important in
 data science. They process datasets and convert them into a format that
-is usable for later analysis such as visualisation or creating
+is usable for later analysis such as visualisation and creating
 predictive models.
 
-This is a side project to demonstrate my data cleaning skills, not all,
-but hopefully it is comprehensive enough for your reference. You could
+This project is a side project to demonstrate my data cleaning skills. I
+hope this project is comprehensive enough for your reference. You could
 visit my other projects on my [Github](https://github.com/KAR-NG)
-repository. All my projects have a section of data cleaning.
+repository to view how I cleaned up data for many other projects. All my
+projects have a section of data cleaning.
 
-In this project, I will clean a public dataset from “agridate” R
-package, named “bridges.cucumber”. This dataset has actually been
-cleaned but I downloaded the cleaned format, devastate, ruin and mess
-it. The single cleaned table has been spitted into 4 tables with a
+In this project, I will clean a public dataset from a R package -
+“agridate”, the dataset is called “bridges.cucumber”. This dataset has
+actually been cleaned but I downloaded the data, devastate, ruin and
+mess it. The single cleaned table has been spitted into 4 tables with a
 numbers of cleaning tasks.
 
 ![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic0_4Tables.JPG)
 
-How the original format is like?
+How the original dataset is like?
 
 ``` r
 data("bridges.cucumber", package = "agridat")
@@ -89,13 +92,9 @@ bridges.cucumber
     ## 31  Tifton   Sprint   3   3 38.4251
     ## 32  Tifton   Sprint   4   4 39.9119
 
-It is a dataset that record the experimental result of a cucumber with
-variables of loc (location), gen (genotype), row (row position of the
-trial block), col (column position of the trial block) and lastly, the
-yield.
-
-This purpose of this project is to show the R codes used to convert the
-4 messy tables into this final analysis-ready format.
+This dataset records the results of a cucumber experiment with variables
+- loc (location), gen (genotype), row (row position of the trial block),
+col (column position of the trial block) and lastly, the yield.
 
 ## 3 DATA IMPORT
 
@@ -214,7 +213,7 @@ Main tasks identified:
 -   Remove the first column.  
 -   Rename column names.  
 -   Clean the strings in location and genotype.
--   Combine yield\_x, yield\_7, and yield\_z
+-   Combine yield\_x, yield\_y, and yield\_z
 
 **Structural and variable names conversion**
 
@@ -228,6 +227,7 @@ tbl2 <- table2 %>%
   mutate(loc = trimws(loc),           # trim leading and trailing white spaces 
          gen = trimws(gen)) %>% 
   mutate_if(is.character, as.factor)  # changing character variables to factor
+
 
 summary(tbl2)
 ```
@@ -249,10 +249,10 @@ summary(tbl2)
     ##  Max.   :50.79   Max.   :43.30  
     ##  NA's   :9       NA's   :10
 
-I can see that in the column “loc”, all values are actually “Tifton”
-based on the original dataset, and it is my job to convert all other
-strings into “Tifton”. In the column “gen”, I will need to rectify a
-typo of Poinsett and fill up 2 blank cells.
+In the column “loc”, all values are actually “Tifton” based on the
+original dataset, and it is my job to convert all other strings into
+“Tifton”. In the column “gen”, I will need to rectify a typo of Poinsett
+and fill up 2 blank cells.
 
 **Cleaning the strings**
 
@@ -269,6 +269,7 @@ tbl2 <- tbl2 %>%
          gen = replace(gen, gen == "", NA)) %>% 
   fill(gen) %>%                               
   mutate_if(is.character, as.factor)
+
 
 summary(tbl2)
 ```
@@ -332,8 +333,8 @@ Main tasks identified:
 
 -   Merge 2 tables together.  
 -   Rename variable names.  
--   Remove the irrevalent row 3.  
--   Fix the typo “10” in the column of Row in table 4.  
+-   Remove the irrelevant row 3 (id = 3).  
+-   Fix the typo “10” in the column of ROW in table 4.
 -   Convert the levels of location and genotype into a proper case with
     only the first character being upper case.
 
@@ -400,9 +401,10 @@ final_table
     ## 31  Tifton   Sprint   3   3 38.4251
     ## 32  Tifton   Sprint   4   4 39.9119
 
-*Final “health check”*
+**Final “health check”**
 
-There is no missing value in the dataset.
+There are no missing values in the dataset by examining the variables
+“n\_missing” and “complete\_rate” of following table.
 
 ``` r
 skim_without_charts(final_table)
@@ -437,8 +439,7 @@ Data summary
 | col            |          0 |              1 |  2.50 |  1.14 |  1.0 |  1.75 |  2.50 |  3.25 |  4.00 |
 | yield          |          0 |              1 | 35.74 | 12.16 | 11.5 | 28.62 | 36.64 | 43.50 | 61.48 |
 
-Following code check data type. These default variable type allocations
-are fine for this cleaning project.
+Following code checks the data and variable types - All good.
 
 ``` r
 glimpse(final_table)
@@ -452,7 +453,7 @@ glimpse(final_table)
     ## $ col   <dbl> 3, 4, 2, 1, 4, 2, 1, 3, 1, 3, 4, 2, 2, 1, 3, 4, 3, 4, 2, 1, 4, 2~
     ## $ yield <dbl> 44.2000, 54.1000, 47.2000, 36.7000, 33.0000, 13.6000, 44.1000, 3~
 
-I can clearly see that there are two location “Clemson” and “TIfton” as
+I can clearly see that there are two location “Clemson” and “Tifton” as
 well as 4 cucumber genotypes represented by “gen”. Both variables have
 equal sample sizes among their attribute (or known as “level”).
 
@@ -468,9 +469,9 @@ summary(final_table)
     ##                            3rd Qu.:3.25   3rd Qu.:3.25   3rd Qu.:43.50  
     ##                            Max.   :4.00   Max.   :4.00   Max.   :61.48
 
-This project is not meant to draw graphs, but I am drawing one to
-inspect possible outliers that may need to be cleaned. I will compared
-with the original dataset, named “bridges.cucumber”.
+This project is not meant to draw graphs but I am drawing one to inspect
+and compare my final cleaned table with the original dataset from the R
+package, named “bridges.cucumber”.
 
 ``` r
 # Set up dataframe / combine final table with the original dataset
@@ -503,9 +504,10 @@ of this project has been successful.
 ## 5 CONCLUSION
 
 In conclusion, this project successfully uses R codes to clean and
-combine 4 tables into 1, with a format of analysis-ready.
+combine four messy tables into one that has a perfect format for
+analysis.
 
-**Thank you for reading**
+*Thank you for reading.*
 
 ## 6 REFERENCE
 
