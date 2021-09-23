@@ -68,23 +68,23 @@ table4 <- read.csv("cucum4.csv", fileEncoding = "UTF-8-BOM")
 
 ### 4.1 Cleaning table 1
 
-Tasks identify:
+Tasks identified:
 
-* Rename the column names
-* Split the first column into two
-* Strings manipulation in the first column
-* Fill up the missing values of the first column 
-* Convert the *4000* in the "row" into 4, according to adjacent values of this column. 
-* Convert the *1000* in the "column" into 1,  according to adjacent values of this column.
+* Rename the column names.  
+* Split the first column into two.  
+* Strings manipulation in the first column.  
+* Fill up the missing values of the first column.   
+* Convert the *4000* in the "row" into 4, according to adjacent values of this column.   
+* Convert the *1000* in the "column" into 1,  according to adjacent values of this column.  
+
+
+**Structural conversion**
+
+In the column of "loc", I have to convert all strings into "Clemson". For the column of "gen", I need to convert those string according to the most likely adjacent value.  
 
 ```{r}
-table1 
 
-```
-
-```{r}
-
-tbl1 <- table1 %>%
+table1 <- table1 %>%
   separate("Llocation.genotype", into = c("loc", "gen"), sep = "-") %>% 
   rename(row = rowrow,
          col = column,
@@ -93,17 +93,46 @@ tbl1 <- table1 %>%
          gen = as.factor(gen))
   
 
-summary(tbl1)
+summary(table1)
 
 ```
 
+**Cleaning the strings**
 
 ```{r}
-tbl1 %>% 
-  mutate(loc = replace(loc, loc == "Clem", "Hi"))
+table1 <- table1 %>% 
+  mutate(loc = replace(loc, loc == "", "Clemson"),   # I am already sure that this blank cell is "Clemson".
+         loc = replace(loc, loc == "Clem", "Clemson"),
+         loc = replace(loc, loc == "Clem_son", "Clemson"),
+         loc = replace(loc, loc == "CLEMSON", "Clemson"),
+         loc = as.character(loc),                    # for factor's levels cleaning. 
+         gen = as.character(gen),                    # To use case when, variable has to be character
+         gen = case_when(gen == "" ~ "Dasher",       # Same nature as replace, I know this blank is "Dasher".
+                         gen == "poinsett" ~ "Poinsett",
+                         gen == "s" ~ "Sprint",
+                         TRUE ~ gen)) %>% 
+  mutate_if(is.character, as.factor)
 
+summary(table1)
 
 ```
 
+**Cleaning outlier values in row and col**
 
+```{r}
+
+table1 <- table1 %>% 
+  mutate(row = replace(row, row == 4000, 4),
+         col = replace(col, col == 1000, 1))
+  
+summary(table1)
+
+```
+
+### 4.2 Cleaning table  2
+
+```{r}
+summary(table2)
+
+```
 
