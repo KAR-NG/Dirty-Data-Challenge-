@@ -499,7 +499,7 @@ ggplot(test, aes(x = fct_reorder(gen, yield), y = yield, fill = group)) +
 ![](cleaning_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 Both tables are identical which indicates that the data cleaning tasks
-of this project has been successful.
+of this project have been successful.
 
 ## 5 CONCLUSION
 
