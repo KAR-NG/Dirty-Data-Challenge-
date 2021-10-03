@@ -52,9 +52,10 @@ actually been cleaned but I downloaded the data, devastate, ruin and
 mess it. The single cleaned table has been spitted into 4 tables with a
 numbers of cleaning tasks.
 
-![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic0_4Tables.JPG)
+![](https://raw.githubusercontent.com/KAR-NG/Dirty-Data-Challenge-/main/pic0_4tables.png)
 
-How the original dataset is like?
+Following is the original dataset, which will be used for comparison in
+section 5.
 
 ``` r
 data("bridges.cucumber", package = "agridat")
@@ -118,8 +119,8 @@ table4 <- read.csv("cucum4.csv", fileEncoding = "UTF-8-BOM")
 In the upcoming cleanings of this project, you may see a more
 complicated way to clean the data because this kind of procedures have
 higher transferability between datasets or projects instead of just
-relying on simple cleaning that only works in this project. My cleanings
-will be a mix of both.
+relying on simple cleaning techniques that only works in this project.
+My cleanings will be a mix of both.
 
 ### 4.1 Cleaning table 1
 
@@ -135,9 +136,8 @@ Main tasks identified from table 1:
     of this column.  
 -   Convert the *1000* in the “column” into 1, according to adjacent
     values of this column.  
--   There are two observation with NAs in row, col and yield, these two
-    rows should be removed as there are too many missing values that
-    making these rows meaningless.
+-   The last two rows of “Llocation-genotype” have too many missing
+    values and these rows will be removed.
 -   Imputation of two of the NA in the column “yield” by imputation
     model.
 
@@ -309,7 +309,8 @@ column.
     ## 3    17                       5     3 60%             
     ## 4    18                       5     3 60%
 
-Checking row 17 and 18, they do not contain important information.
+Checking row 17 and 18, these rows are having their important
+information missing.
 
 ``` r
 t1[c(17:18), ]
@@ -319,8 +320,9 @@ t1[c(17:18), ]
     ## 17 clemson sprint  NA  NA    NA
     ## 18 clemson sprint  NA  NA    NA
 
-Additionally, all level have 4 levels and only sprint has 6 levels. It
-is obvious that 17 and 18 are errors and should be removed.
+Additionally, all levels of “gen” have 4 replicates and only “sprint”
+has 6 replicates. It is obvious that row 17 and 18 are errors and should
+be removed.
 
 ``` r
 t1 %>% group_by(gen) %>% summarise(count = n())
@@ -338,11 +340,6 @@ Removing row 17 and 18.
 
 ``` r
 t1 <- t1[-c(17, 18),]
-```
-
-Removal was succesful.
-
-``` r
 t1 %>% group_by(gen) %>% summarise(count = n())
 ```
 
@@ -354,7 +351,8 @@ t1 %>% group_by(gen) %>% summarise(count = n())
     ## 3 poinsett     4
     ## 4 sprint       4
 
-Next, I will clean up the 4000 and 1000 in the “row” and “col” columns.
+Now, the removal of row 17 and 18 has been successful. Comming up, I
+will clean up the 4000 and 1000 in the “row” and “col” columns.
 
 **Step 5: Cleaning outlier values in row and col**
 
@@ -377,7 +375,7 @@ summary(table1)
 
 The cleaning of table 1 has now considered completed. There are two
 missing values in the *yield*, I will fill them up with imputation model
-after combining other tables into this table.
+after combining other tables into this table in section 4.5.
 
 ### 4.2 Cleaning table 2
 
@@ -589,7 +587,7 @@ final_table
 
 Last but not least, there are 2 missing values in the “yield” column and
 I will fill them up using imputation model to predict the most possible
-values based on adjacent data.
+values based on adjacent similar data.
 
 ``` r
 colSums(is.na(final_table))
@@ -600,8 +598,8 @@ colSums(is.na(final_table))
 
 Imputation technique I am applying is a type of machine learning
 imputation model that will use all columns in the dataset to predict
-these missing values. I am using the imputation function from “caret”
-package.
+these missing values. I am using the imputation function from R’s
+“caret” package.
 
 To use the function, I will need to convert all factor variables into
 dummy data.
@@ -641,7 +639,7 @@ colSums(is.na(final_table_dum))
     ##          row          col        yield 
     ##            0            0            2
 
-Imputation using bagging of decision trees.
+Imputation using the bagging technique of decision trees.
 
 ``` r
 set.seed(123)
@@ -724,62 +722,17 @@ Overwrite the “yield” of the final\_table.
 final_table$yield <- imputed.final.table[, 9]
 ```
 
-Checking randomly selected 10 rows from the dataset. The imputation has
-been successful.
+Checking the present in the dataset and the result shows that the
+imputation has been successful.
 
 ``` r
-sample_n(final_table, 10)
+colSums(is.na(final_table))
 ```
 
-    ##        loc      gen row col    yield
-    ## 1  clemson   sprint   2   1 20.30000
-    ## 2  clemson guardian   4   3 30.28232
-    ## 3  clemson guardian   3   1 44.10000
-    ## 4  clemson   dasher   3   2 33.28960
-    ## 5   tifton poinsett   3   4 30.74890
-    ## 6  clemson   sprint   1   2 15.10000
-    ## 7   tifton poinsett   1   1 36.57490
-    ## 8   tifton   sprint   4   4 39.91190
-    ## 9   tifton poinsett   4   2 40.06610
-    ## 10  tifton guardian   1   4 34.70260
+    ##   loc   gen   row   col yield 
+    ##     0     0     0     0     0
 
 ## 5. Data “health check”
-
-There are no missing values in the dataset by examining the variables
-“n\_missing” and “complete\_rate” of following table.
-
-``` r
-skim_without_charts(final_table)
-```
-
-|                                                  |              |
-|:-------------------------------------------------|:-------------|
-| Name                                             | final\_table |
-| Number of rows                                   | 32           |
-| Number of columns                                | 5            |
-| \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_   |              |
-| Column type frequency:                           |              |
-| factor                                           | 2            |
-| numeric                                          | 3            |
-| \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ |              |
-| Group variables                                  | None         |
-
-Data summary
-
-**Variable type: factor**
-
-| skim\_variable | n\_missing | complete\_rate | ordered | n\_unique | top\_counts                    |
-|:---------------|-----------:|---------------:|:--------|----------:|:-------------------------------|
-| loc            |          0 |              1 | FALSE   |         2 | cle: 16, tif: 16               |
-| gen            |          0 |              1 | FALSE   |         4 | das: 8, gua: 8, poi: 8, spr: 8 |
-
-**Variable type: numeric**
-
-| skim\_variable | n\_missing | complete\_rate |  mean |    sd |   p0 |   p25 |   p50 |   p75 |  p100 |
-|:---------------|-----------:|---------------:|------:|------:|-----:|------:|------:|------:|------:|
-| row            |          0 |              1 |  2.50 |  1.14 |  1.0 |  1.75 |  2.50 |  3.25 |  4.00 |
-| col            |          0 |              1 |  2.50 |  1.14 |  1.0 |  1.75 |  2.50 |  3.25 |  4.00 |
-| yield          |          0 |              1 | 35.14 | 12.02 | 11.5 | 28.62 | 35.83 | 41.80 | 61.48 |
 
 All data are with correct type that are readied for machine learning
 prediction.
@@ -796,9 +749,10 @@ glimpse(final_table)
     ## $ col   <dbl> 3, 4, 2, 1, 4, 2, 1, 3, 1, 3, 4, 2, 2, 1, 3, 4, 3, 4, 2, 1, 4, 2~
     ## $ yield <dbl> 44.20000, 54.10000, 33.28960, 36.70000, 33.00000, 13.60000, 44.1~
 
-I can clearly see that there are two location “Clemson” and “Tifton” as
-well as 4 cucumber genotypes represented by “gen”. Both variables have
-equal sample sizes among their attribute (or known as “level”).
+Now, I can clearly see that there are two location “Clemson” and
+“Tifton” as well as 4 cucumber genotypes in the column of “gen”. Both
+variables have equal sample sizes (16 and 8) among their attribute (or
+known as “level”).
 
 ``` r
 summary(final_table)
@@ -839,20 +793,61 @@ ggplot(test, aes(x = fct_reorder(gen, yield), y = yield, fill = group)) +
        title = "Comparing Final Table with the Original to Check for Disparity")
 ```
 
-![](cleaning_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
+![](cleaning_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
 
 There were two missing values in guardian and dasher of final\_table
 filled up by estimates from the imputation model. That is why the
 guardian and dasher of two dataset seems a little bit different.
 However, the difference is minor and not dramatic.
 
+Finally, following is my cleaned dataset combined from the 4 messy
+tables and is ready for storage or any analysis.
+
+``` r
+final_table
+```
+
+    ##        loc      gen row col    yield
+    ## 1  clemson   dasher   1   3 44.20000
+    ## 2  clemson   dasher   2   4 54.10000
+    ## 3  clemson   dasher   3   2 33.28960
+    ## 4  clemson   dasher   4   1 36.70000
+    ## 5  clemson guardian   1   4 33.00000
+    ## 6  clemson guardian   2   2 13.60000
+    ## 7  clemson guardian   3   1 44.10000
+    ## 8  clemson guardian   4   3 30.28232
+    ## 9  clemson poinsett   1   1 11.50000
+    ## 10 clemson poinsett   2   3 22.40000
+    ## 11 clemson poinsett   3   4 30.30000
+    ## 12 clemson poinsett   4   2 21.50000
+    ## 13 clemson   sprint   1   2 15.10000
+    ## 14 clemson   sprint   2   1 20.30000
+    ## 15 clemson   sprint   3   3 41.30000
+    ## 16 clemson   sprint   4   4 27.10000
+    ## 17  tifton   dasher   1   3 53.54630
+    ## 18  tifton   dasher   2   4 37.52200
+    ## 19  tifton   dasher   3   2 49.39430
+    ## 20  tifton   dasher   4   1 61.47580
+    ## 21  tifton guardian   1   4 34.70260
+    ## 22  tifton guardian   2   2 29.13000
+    ## 23  tifton guardian   3   1 40.24230
+    ## 24  tifton guardian   4   3 50.79300
+    ## 25  tifton poinsett   1   1 36.57490
+    ## 26  tifton poinsett   2   3 24.66960
+    ## 27  tifton poinsett   3   4 30.74890
+    ## 28  tifton poinsett   4   2 40.06610
+    ## 29  tifton   sprint   1   2 35.07710
+    ## 30  tifton   sprint   2   1 43.30400
+    ## 31  tifton   sprint   3   3 38.42510
+    ## 32  tifton   sprint   4   4 39.91190
+
 ## 5 CONCLUSION
 
 In conclusion, this project successfully uses R codes to clean and
-combine four messy tables into one that has a perfect format for
-analysis.
+combine four messy tables into one that has a perfect format for storage
+or statistical analysis.
 
-*Thank you for reading.*
+*Thank you for reading!*
 
 ## 6 REFERENCE
 
