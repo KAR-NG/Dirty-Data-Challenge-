@@ -37,11 +37,10 @@ This project is a side project to demonstrate my data cleaning skills. This proj
 
 In this project, I will clean a public dataset from a R package - "agridate", the dataset is called "bridges.cucumber". This dataset has actually been cleaned but I downloaded the data, devastate, ruin and mess it. The single cleaned table has been spitted into 4 tables with a numbers of cleaning tasks. 
 
-![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic0_4Tables.JPG)
+![](https://raw.githubusercontent.com/KAR-NG/Dirty-Data-Challenge-/main/pic0_4tables.png)
 
 
-
-How the original dataset is like? 
+Following is the original dataset, which will be used for comparison in section 5.  
 
 ```{r}
 data("bridges.cucumber", package = "agridat")
@@ -69,7 +68,7 @@ table4 <- read.csv("cucum4.csv", fileEncoding = "UTF-8-BOM")
 
 ## 4 DATA CLEANING
 
-In the upcoming cleanings of this project, you may see a more complicated way to clean the data because this kind of procedures have higher transferability between datasets or projects instead of just relying on simple cleaning that only works in this project. My cleanings will be a mix of both. 
+In the upcoming cleanings of this project, you may see a more complicated way to clean the data because this kind of procedures have higher transferability between datasets or projects instead of just relying on simple cleaning techniques that only works in this project. My cleanings will be a mix of both. 
 
 
 ### 4.1 Cleaning table 1
@@ -85,7 +84,7 @@ Main tasks identified from table 1:
 * Fill up the missing values of the first column.   
 * Convert the *4000* in the "row" into 4, according to adjacent values of this column.   
 * Convert the *1000* in the "column" into 1,  according to adjacent values of this column.  
-* There are two observation with NAs in row, col and yield, these two rows should be removed as there are too many missing values that making these rows meaningless. 
+* The last two rows of "Llocation-genotype" have too many missing values and these rows will be removed. 
 * Imputation of two of the NA in the column "yield" by imputation model.
 
 **Step 1： Cleaning column 1 by Rename + lower case + remove punctuation**
@@ -180,14 +179,14 @@ Calculating the number of missing values in each row of data, not column.
   
 
 ```
-Checking row 17 and 18, they do not contain important information.
+Checking row 17 and 18, these rows are having their important information missing. 
 
 ```{r}
 t1[c(17:18), ]
   
 ```
 
-Additionally, all level have 4 levels and only sprint has 6 levels. It is obvious that 17 and 18 are errors and should be removed.
+Additionally, all levels of "gen" have 4 replicates and only "sprint" has 6 replicates. It is obvious that row 17 and 18 are errors and should be removed.
 
 ```{r}
 t1 %>% group_by(gen) %>% summarise(count = n())
@@ -197,16 +196,10 @@ Removing row 17 and 18.
 
 ```{r}
 t1 <- t1[-c(17, 18),]
-
-```
-
-Removal was succesful. 
-
-```{r}
 t1 %>% group_by(gen) %>% summarise(count = n())
 ```
 
-Next, I will clean up the 4000 and 1000 in the "row" and "col" columns.
+Now, the removal of row 17 and 18 has been successful. Comming up, I will clean up the 4000 and 1000 in the "row" and "col" columns.
  
 **Step 5: Cleaning outlier values in row and col**
 
@@ -220,7 +213,7 @@ summary(table1)
 
 ```
 
-The cleaning of table 1 has now considered completed. There are two missing values in the *yield*, I will fill them up with imputation model after combining other tables into this table. 
+The cleaning of table 1 has now considered completed. There are two missing values in the *yield*, I will fill them up with imputation model after combining other tables into this table in section 4.5. 
 
 
 ### 4.2 Cleaning table 2
@@ -355,14 +348,14 @@ final_table
 
 ### 4.5 Missing value Imputation
 
-Last but not least, there are 2 missing values in the "yield" column and I will fill them up using imputation model to predict the most possible values based on adjacent data. 
+Last but not least, there are 2 missing values in the "yield" column and I will fill them up using imputation model to predict the most possible values based on adjacent similar data. 
 
 ```{r}
 colSums(is.na(final_table))
 ```
 
 
-Imputation technique I am applying is a type of machine learning imputation model that will use all columns in the dataset to predict these missing values. I am using the imputation function from "caret" package. 
+Imputation technique I am applying is a type of machine learning imputation model that will use all columns in the dataset to predict these missing values. I am using the imputation function from R's "caret" package. 
 
 To use the function, I will need to convert all factor variables into dummy data.
 
@@ -383,7 +376,7 @@ colSums(is.na(final_table_dum))
 
 ```
 
-Imputation using bagging of decision trees. 
+Imputation using the bagging technique of decision trees. 
 
 ```{r}
 set.seed(123)
@@ -400,23 +393,15 @@ final_table$yield <- imputed.final.table[, 9]
 
 ```
 
-
-Checking randomly selected 10 rows from the dataset. The imputation has been successful.  
+Checking the present in the dataset and the result shows that the imputation has been successful.  
 
 ```{r}
-sample_n(final_table, 10)
+colSums(is.na(final_table))
 
 ```
 
 
 ## 5. Data "health check"
-
-There are no missing values in the dataset by examining the variables "n_missing" and "complete_rate" of following table. 
-
-```{r}
-skim_without_charts(final_table)
-
-```
 
 All data are with correct type that are readied for machine learning prediction. 
 
@@ -425,7 +410,7 @@ glimpse(final_table)
 
 ```
 
-I can clearly see that there are two location "Clemson" and "Tifton" as well as 4 cucumber genotypes represented by "gen". Both variables have equal sample sizes among their attribute (or known as "level"). 
+Now, I can clearly see that there are two location "Clemson" and "Tifton" as well as 4 cucumber genotypes in the column of "gen". Both variables have equal sample sizes (16 and 8) among their attribute (or known as "level"). 
 
 ```{r}
 summary(final_table)
@@ -461,14 +446,22 @@ ggplot(test, aes(x = fct_reorder(gen, yield), y = yield, fill = group)) +
 
 There were two missing values in guardian and dasher of final_table filled up by estimates from the imputation model. That is why the guardian and dasher of two dataset seems a little bit different. However, the difference is minor and not dramatic. 
 
+Finally, following is my cleaned dataset combined from the 4 messy tables and is ready for storage or any analysis.
+
+```{r}
+final_table
+
+```
+
+
 
 ## 5 CONCLUSION
 
-In conclusion, this project successfully uses R codes to clean and combine four messy tables into one that has a perfect format for analysis.
+In conclusion, this project successfully uses R codes to clean and combine four messy tables into one that has a perfect format for storage or statistical analysis.
 
 
 
-*Thank you for reading.*
+*Thank you for reading!*
 
 
 ## 6 REFERENCE
