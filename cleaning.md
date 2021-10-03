@@ -11,12 +11,14 @@ Kar Ng
     -   [4.2 Cleaning table 2](#42-cleaning-table-2)
     -   [4.3 Cleaning tables 3 and 4](#43-cleaning-tables-3-and-4)
     -   [4.4 Combine all tables](#44-combine-all-tables)
+    -   [4.5 Missing value Imputation](#45-missing-value-imputation)
+-   [5. Data “health check”](#5-data-health-check)
 -   [5 CONCLUSION](#5-conclusion)
 -   [6 REFERENCE](#6-reference)
 
 ------------------------------------------------------------------------
 
-![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic4_thumbnail.JPG)
+![](https://raw.githubusercontent.com/KAR-NG/Dirty-Data-Challenge-/main/pic4_thumbnail.png)
 
 ------------------------------------------------------------------------
 
@@ -28,6 +30,7 @@ Following codes load required R packages for this project.
 library(tidyverse)
 library(skimr)
 library(agridat)
+library(caret)
 ```
 
 ## 2 INTRODUCTION
@@ -37,11 +40,11 @@ data science. They process datasets and convert them into a format that
 is usable for later analysis such as visualisation and creating
 predictive models.
 
-This project is a side project to demonstrate my data cleaning skills. I
-hope this project is comprehensive enough for your reference. You could
-visit my other projects on my [Github](https://github.com/KAR-NG)
-repository to view how I cleaned up data for many other projects. All my
-projects have a section of data cleaning.
+This project is a side project to demonstrate my data cleaning skills.
+This project works on a simple dataset with many common cleaning tasks.
+I hope this project is comprehensive enough for your reference. You
+could visit my other projects on my [Github](https://github.com/KAR-NG)
+repository to view how I cleaned up other projects.
 
 In this project, I will clean a public dataset from a R package -
 “agridate”, the dataset is called “bridges.cucumber”. This dataset has
@@ -112,81 +115,251 @@ table4 <- read.csv("cucum4.csv", fileEncoding = "UTF-8-BOM")
 
 ## 4 DATA CLEANING
 
+In the upcoming cleanings of this project, you may see a more
+complicated way to clean the data because this kind of procedures have
+higher transferability between datasets or projects instead of just
+relying on simple cleaning that only works in this project. My cleanings
+will be a mix of both.
+
 ### 4.1 Cleaning table 1
 
 Main tasks identified from table 1:
 
-![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic1_table1.JPG)
+![](https://raw.githubusercontent.com/KAR-NG/Dirty-Data-Challenge-/main/pic1_table1.JPG)
 
 -   Rename the column names.  
 -   Split the first column into two.  
--   Strings manipulation in the first column.  
+-   Strings manipulation and extraction in the first column.  
 -   Fill up the missing values of the first column.  
 -   Convert the *4000* in the “row” into 4, according to adjacent values
     of this column.  
 -   Convert the *1000* in the “column” into 1, according to adjacent
-    values of this column.
+    values of this column.  
+-   There are two observation with NAs in row, col and yield, these two
+    rows should be removed as there are too many missing values that
+    making these rows meaningless.
+-   Imputation of two of the NA in the column “yield” by imputation
+    model.
 
-**Structural and variable names conversion**
+**Step 1： Cleaning column 1 by Rename + lower case + remove
+punctuation**
 
 ``` r
-table1 <- table1 %>%
-  separate("Llocation.genotype", into = c("loc", "gen"), sep = "-") %>% 
-  rename(row = rowrow,
+t1 <- table1 %>% 
+  rename("loc_gen" = Llocation.genotype,
+         row = rowrow,
          col = column,
          yield = yield.g) %>% 
-  mutate_if(is.character, as.factor)
-  
+  mutate(loc_gen = str_to_lower(loc_gen),
+         loc_gen = str_replace_all(loc_gen, "[[:punct:]]", " "),
+         loc_gen = replace(loc_gen, loc_gen == " ", NA)) 
 
-summary(table1)
+t1
 ```
 
-    ##        loc           gen         row               col              yield      
-    ##          : 1           :1   Min.   :   1.00   Min.   :   1.00   Min.   :11.50  
-    ##  Clem    : 1   Dasher  :3   1st Qu.:   1.75   1st Qu.:   2.00   1st Qu.:21.20  
-    ##  Clem_son: 1   Guardian:4   Median :   2.50   Median :   3.00   Median :31.65  
-    ##  Clemson :11   poinsett:1   Mean   : 252.25   Mean   :  64.94   Mean   :31.14  
-    ##  CLEMSON : 2   Poinsett:3   3rd Qu.:   3.25   3rd Qu.:   4.00   3rd Qu.:42.00  
-    ##                s       :2   Max.   :4000.00   Max.   :1000.00   Max.   :54.10  
-    ##                Sprint  :2
+    ##                               loc_gen  row  col yield
+    ## 1                      clemson dasher    1    3  44.2
+    ## 2                      clemson dasher    2    4  54.1
+    ## 3                                <NA>    3    2    NA
+    ## 4                      clemson dasher 4000    1  36.7
+    ## 5                    clemson guardian    1    4  33.0
+    ## 6                    clemson guardian    2    2  13.6
+    ## 7                    clemson guardian    3    1  44.1
+    ## 8                    clemson guardian    4    3    NA
+    ## 9                   clem son poinsett    1 1000  11.5
+    ## 10                   clemson poinsett    2    3  22.4
+    ## 11                   clemson poinsett    3    4  30.3
+    ## 12                   clemson poinsett    4    2  21.5
+    ## 13                        clem sprint    1    2  15.1
+    ## 14                     clemson sprint    2    1  20.3
+    ## 15 i am pretty sure this is clemson s    3    3  41.3
+    ## 16           clemson s   in this cell    4    4  27.1
+    ## 17                     clemson sprint   NA   NA    NA
+    ## 18                     clemson sprint   NA   NA    NA
 
-In the column of “loc”, I have to convert all strings into “Clemson”.
-For the column of “gen”, I need to convert those undesirable strings
-according to the most likely adjacent values.
+**Step 2: Fill up the missing value in loc\_gen.**
 
-**Cleaning the strings**
+I observed that the empty cell should be “clemson dasher” as compared to
+adjacent strings and the frequency of this combination in the entire
+dataset.
 
 ``` r
-table1 <- table1 %>% 
-  mutate(loc = replace(loc, loc == "", "Clemson"),   # I am already sure that this blank cell is "Clemson".
-         loc = replace(loc, loc == "Clem", "Clemson"),
-         loc = replace(loc, loc == "Clem_son", "Clemson"),
-         loc = replace(loc, loc == "CLEMSON", "Clemson"),
-         loc = as.character(loc),                    # for factor's levels cleaning. 
-         gen = as.character(gen),                    # To use case when, variable has to be character
-         gen = case_when(gen == "" ~ "Dasher",      # Same nature as replace, I know this blank is "Dasher".
-                         gen == "poinsett" ~ "Poinsett",
-                         gen == "s" ~ "Sprint",
-                         TRUE ~ gen)) %>% 
-  mutate_if(is.character, as.factor)
+t1_temp <- t1 %>% 
+  mutate(comment = ifelse(is.na(loc_gen), "Was a NA -->", ""),
+         loc_gen = replace(loc_gen, is.na(loc_gen), "clemson dasher")) %>% 
+  relocate(comment, .before = loc_gen)
 
-summary(table1)
+t1_temp 
 ```
 
-    ##       loc           gen         row               col              yield      
-    ##  Clemson:16   Dasher  :4   Min.   :   1.00   Min.   :   1.00   Min.   :11.50  
-    ##               Guardian:4   1st Qu.:   1.75   1st Qu.:   2.00   1st Qu.:21.20  
-    ##               Poinsett:4   Median :   2.50   Median :   3.00   Median :31.65  
-    ##               Sprint  :4   Mean   : 252.25   Mean   :  64.94   Mean   :31.14  
-    ##                            3rd Qu.:   3.25   3rd Qu.:   4.00   3rd Qu.:42.00  
-    ##                            Max.   :4000.00   Max.   :1000.00   Max.   :54.10
+    ##         comment                            loc_gen  row  col yield
+    ## 1                                   clemson dasher    1    3  44.2
+    ## 2                                   clemson dasher    2    4  54.1
+    ## 3  Was a NA -->                     clemson dasher    3    2    NA
+    ## 4                                   clemson dasher 4000    1  36.7
+    ## 5                                 clemson guardian    1    4  33.0
+    ## 6                                 clemson guardian    2    2  13.6
+    ## 7                                 clemson guardian    3    1  44.1
+    ## 8                                 clemson guardian    4    3    NA
+    ## 9                                clem son poinsett    1 1000  11.5
+    ## 10                                clemson poinsett    2    3  22.4
+    ## 11                                clemson poinsett    3    4  30.3
+    ## 12                                clemson poinsett    4    2  21.5
+    ## 13                                     clem sprint    1    2  15.1
+    ## 14                                  clemson sprint    2    1  20.3
+    ## 15              i am pretty sure this is clemson s    3    3  41.3
+    ## 16                        clemson s   in this cell    4    4  27.1
+    ## 17                                  clemson sprint   NA   NA    NA
+    ## 18                                  clemson sprint   NA   NA    NA
+
+**Step 3: Create loc and gen from log\_gen**
+
+``` r
+# set up df
+
+t1 <- t1_temp %>% dplyr::select(-comment)
+
+# set up rules
+
+loc <- "clemson|clem|c"          # Observe from table 1 I know that loc is clemson
+gen <- c("dasher|guardian|poinsett|sprint") # Observe from table 1 I know these are gen 
+
+# get loc and gen, and remove loc_gen 
+
+t1 <- t1 %>% 
+  mutate(loc = str_extract(loc_gen, loc),
+         gen = str_extract(loc_gen, gen),
+         gen = ifelse(loc_gen == "i am pretty sure this is clemson s", "sprint", gen)) %>% 
+  mutate(gen = ifelse(str_detect(loc_gen,"in this cell"), "sprint", gen)) %>% 
+  dplyr::select(-loc_gen) %>% 
+  relocate(loc, .before = row) %>% 
+  relocate(gen, .after = loc) %>% 
+  mutate(loc = ifelse(loc == "clem", "clemson", loc)) %>% 
+  mutate_if(is.character, as.factor)
+  
+t1 
+```
+
+    ##        loc      gen  row  col yield
+    ## 1  clemson   dasher    1    3  44.2
+    ## 2  clemson   dasher    2    4  54.1
+    ## 3  clemson   dasher    3    2    NA
+    ## 4  clemson   dasher 4000    1  36.7
+    ## 5  clemson guardian    1    4  33.0
+    ## 6  clemson guardian    2    2  13.6
+    ## 7  clemson guardian    3    1  44.1
+    ## 8  clemson guardian    4    3    NA
+    ## 9  clemson poinsett    1 1000  11.5
+    ## 10 clemson poinsett    2    3  22.4
+    ## 11 clemson poinsett    3    4  30.3
+    ## 12 clemson poinsett    4    2  21.5
+    ## 13 clemson   sprint    1    2  15.1
+    ## 14 clemson   sprint    2    1  20.3
+    ## 15 clemson   sprint    3    3  41.3
+    ## 16 clemson   sprint    4    4  27.1
+    ## 17 clemson   sprint   NA   NA    NA
+    ## 18 clemson   sprint   NA   NA    NA
+
+In table 1, the “loc” has only 1 level called “clemson”.
+
+``` r
+levels(t1$loc)
+```
+
+    ## [1] "clemson"
+
+In table 1, the “gen” has 4 levels.
+
+``` r
+levels(t1$gen)
+```
+
+    ## [1] "dasher"   "guardian" "poinsett" "sprint"
+
+**Step 4: Get perfect loc and gen column.**
+
+Calculating the number of missing values in each row of data, not
+column.
+
+-   Row 17 and 18 have the highest number of missing values.
+-   They will be removed.
+
+``` r
+ t1 %>% 
+  mutate(id = row_number()) %>% 
+  gather(key = "variable", value = "value", -6) %>% 
+  mutate(max.number.of.variables = n_distinct(variable)) %>% 
+  filter(is.na(value)) %>% 
+  group_by(id, max.number.of.variables) %>% 
+  summarise(count = n()) %>% 
+  mutate(InfoLost.percent = paste0(count/max.number.of.variables * 100, "%"))
+```
+
+    ## Warning: attributes are not identical across measure variables;
+    ## they will be dropped
+
+    ## `summarise()` has grouped output by 'id'. You can override using the `.groups` argument.
+
+    ## # A tibble: 4 x 4
+    ## # Groups:   id [4]
+    ##      id max.number.of.variables count InfoLost.percent
+    ##   <int>                   <int> <int> <chr>           
+    ## 1     3                       5     1 20%             
+    ## 2     8                       5     1 20%             
+    ## 3    17                       5     3 60%             
+    ## 4    18                       5     3 60%
+
+Checking row 17 and 18, they do not contain important information.
+
+``` r
+t1[c(17:18), ]
+```
+
+    ##        loc    gen row col yield
+    ## 17 clemson sprint  NA  NA    NA
+    ## 18 clemson sprint  NA  NA    NA
+
+Additionally, all level have 4 levels and only sprint has 6 levels. It
+is obvious that 17 and 18 are errors and should be removed.
+
+``` r
+t1 %>% group_by(gen) %>% summarise(count = n())
+```
+
+    ## # A tibble: 4 x 2
+    ##   gen      count
+    ##   <fct>    <int>
+    ## 1 dasher       4
+    ## 2 guardian     4
+    ## 3 poinsett     4
+    ## 4 sprint       6
+
+Removing row 17 and 18.
+
+``` r
+t1 <- t1[-c(17, 18),]
+```
+
+Removal was succesful.
+
+``` r
+t1 %>% group_by(gen) %>% summarise(count = n())
+```
+
+    ## # A tibble: 4 x 2
+    ##   gen      count
+    ##   <fct>    <int>
+    ## 1 dasher       4
+    ## 2 guardian     4
+    ## 3 poinsett     4
+    ## 4 sprint       4
 
 Next, I will clean up the 4000 and 1000 in the “row” and “col” columns.
 
-**Cleaning outlier values in row and col**
+**Step 5: Cleaning outlier values in row and col**
 
 ``` r
-table1 <- table1 %>% 
+table1 <- t1 %>% 
   mutate(row = replace(row, row == 4000, 4),
          col = replace(col, col == 1000, 1))
   
@@ -194,20 +367,23 @@ summary(table1)
 ```
 
     ##       loc           gen         row            col           yield      
-    ##  Clemson:16   Dasher  :4   Min.   :1.00   Min.   :1.00   Min.   :11.50  
-    ##               Guardian:4   1st Qu.:1.75   1st Qu.:1.75   1st Qu.:21.20  
-    ##               Poinsett:4   Median :2.50   Median :2.50   Median :31.65  
-    ##               Sprint  :4   Mean   :2.50   Mean   :2.50   Mean   :31.14  
-    ##                            3rd Qu.:3.25   3rd Qu.:3.25   3rd Qu.:42.00  
-    ##                            Max.   :4.00   Max.   :4.00   Max.   :54.10
+    ##  clemson:16   dasher  :4   Min.   :1.00   Min.   :1.00   Min.   :11.50  
+    ##               guardian:4   1st Qu.:1.75   1st Qu.:1.75   1st Qu.:20.60  
+    ##               poinsett:4   Median :2.50   Median :2.50   Median :28.70  
+    ##               sprint  :4   Mean   :2.50   Mean   :2.50   Mean   :29.66  
+    ##                            3rd Qu.:3.25   3rd Qu.:3.25   3rd Qu.:40.15  
+    ##                            Max.   :4.00   Max.   :4.00   Max.   :54.10  
+    ##                                                          NA's   :2
 
-The cleaning of table 1 has now completed.
+The cleaning of table 1 has now considered completed. There are two
+missing values in the *yield*, I will fill them up with imputation model
+after combining other tables into this table.
 
 ### 4.2 Cleaning table 2
 
 Main tasks identified:
 
-![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic2_table2.JPG)
+![](https://raw.githubusercontent.com/KAR-NG/Dirty-Data-Challenge-/main/pic2_table2.JPG)
 
 -   Trim leading and trailing white spaces.  
 -   Remove the first column.  
@@ -329,7 +505,7 @@ This section will clean 3 and 4 together and combine them into 1.
 
 Main tasks identified:
 
-![](https://raw.githubusercontent.com/KAR-NG/cleaning/main/pic3_table3_table4.JPG)
+![](https://raw.githubusercontent.com/KAR-NG/Dirty-Data-Challenge-/main/pic3_table3_table4.JPG)
 
 -   Merge 2 tables together.  
 -   Rename variable names.  
@@ -364,44 +540,210 @@ final_table <- rbind(table1, table2, table3)
 final_table <- final_table %>% 
   mutate(yield = as.double(yield))
 
+# a bit of cleaning
+
+final_table <- final_table %>% 
+  mutate(loc = str_to_lower(loc),
+         gen = str_to_lower(gen)) %>% 
+  mutate_if(is.character, as.factor) %>% 
+  arrange(loc, gen, row, col)
+
 final_table
 ```
 
     ##        loc      gen row col   yield
-    ## 1  Clemson   Dasher   1   3 44.2000
-    ## 2  Clemson   Dasher   2   4 54.1000
-    ## 3  Clemson   Dasher   3   2 47.2000
-    ## 4  Clemson   Dasher   4   1 36.7000
-    ## 5  Clemson Guardian   1   4 33.0000
-    ## 6  Clemson Guardian   2   2 13.6000
-    ## 7  Clemson Guardian   3   1 44.1000
-    ## 8  Clemson Guardian   4   3 35.8000
-    ## 9  Clemson Poinsett   1   1 11.5000
-    ## 10 Clemson Poinsett   2   3 22.4000
-    ## 11 Clemson Poinsett   3   4 30.3000
-    ## 12 Clemson Poinsett   4   2 21.5000
-    ## 13 Clemson   Sprint   1   2 15.1000
-    ## 14 Clemson   Sprint   2   1 20.3000
-    ## 15 Clemson   Sprint   3   3 41.3000
-    ## 16 Clemson   Sprint   4   4 27.1000
-    ## 17  Tifton   Dasher   1   3 53.5463
-    ## 18  Tifton   Dasher   2   4 37.5220
-    ## 19  Tifton   Dasher   3   2 49.3943
-    ## 20  Tifton   Dasher   4   1 61.4758
-    ## 21  Tifton Guardian   1   4 34.7026
-    ## 22  Tifton Guardian   2   2 29.1300
-    ## 23  Tifton Guardian   3   1 40.2423
-    ## 24  Tifton Guardian   4   3 50.7930
-    ## 25  Tifton Poinsett   1   1 36.5749
-    ## 26  Tifton Poinsett   2   3 24.6696
-    ## 27  Tifton Poinsett   3   4 30.7489
-    ## 28  Tifton Poinsett   4   2 40.0661
-    ## 29  Tifton   Sprint   1   2 35.0771
-    ## 30  Tifton   Sprint   2   1 43.3040
-    ## 31  Tifton   Sprint   3   3 38.4251
-    ## 32  Tifton   Sprint   4   4 39.9119
+    ## 1  clemson   dasher   1   3 44.2000
+    ## 2  clemson   dasher   2   4 54.1000
+    ## 3  clemson   dasher   3   2      NA
+    ## 4  clemson   dasher   4   1 36.7000
+    ## 5  clemson guardian   1   4 33.0000
+    ## 6  clemson guardian   2   2 13.6000
+    ## 7  clemson guardian   3   1 44.1000
+    ## 8  clemson guardian   4   3      NA
+    ## 9  clemson poinsett   1   1 11.5000
+    ## 10 clemson poinsett   2   3 22.4000
+    ## 11 clemson poinsett   3   4 30.3000
+    ## 12 clemson poinsett   4   2 21.5000
+    ## 13 clemson   sprint   1   2 15.1000
+    ## 14 clemson   sprint   2   1 20.3000
+    ## 15 clemson   sprint   3   3 41.3000
+    ## 16 clemson   sprint   4   4 27.1000
+    ## 17  tifton   dasher   1   3 53.5463
+    ## 18  tifton   dasher   2   4 37.5220
+    ## 19  tifton   dasher   3   2 49.3943
+    ## 20  tifton   dasher   4   1 61.4758
+    ## 21  tifton guardian   1   4 34.7026
+    ## 22  tifton guardian   2   2 29.1300
+    ## 23  tifton guardian   3   1 40.2423
+    ## 24  tifton guardian   4   3 50.7930
+    ## 25  tifton poinsett   1   1 36.5749
+    ## 26  tifton poinsett   2   3 24.6696
+    ## 27  tifton poinsett   3   4 30.7489
+    ## 28  tifton poinsett   4   2 40.0661
+    ## 29  tifton   sprint   1   2 35.0771
+    ## 30  tifton   sprint   2   1 43.3040
+    ## 31  tifton   sprint   3   3 38.4251
+    ## 32  tifton   sprint   4   4 39.9119
 
-**Final “health check”**
+### 4.5 Missing value Imputation
+
+Last but not least, there are 2 missing values in the “yield” column and
+I will fill them up using imputation model to predict the most possible
+values based on adjacent data.
+
+``` r
+colSums(is.na(final_table))
+```
+
+    ##   loc   gen   row   col yield 
+    ##     0     0     0     0     2
+
+Imputation technique I am applying is a type of machine learning
+imputation model that will use all columns in the dataset to predict
+these missing values. I am using the imputation function from “caret”
+package.
+
+To use the function, I will need to convert all factor variables into
+dummy data.
+
+``` r
+# Dummy transformation
+
+dummy.variables <- dummyVars(~., data = final_table)
+final_table_dum <- dummy.variables %>% predict(final_table)  
+
+head(final_table_dum)
+```
+
+    ##   loc.clemson loc.tifton gen.dasher gen.guardian gen.poinsett gen.sprint row
+    ## 1           1          0          1            0            0          0   1
+    ## 2           1          0          1            0            0          0   2
+    ## 3           1          0          1            0            0          0   3
+    ## 4           1          0          1            0            0          0   4
+    ## 5           1          0          0            1            0          0   1
+    ## 6           1          0          0            1            0          0   2
+    ##   col yield
+    ## 1   3  44.2
+    ## 2   4  54.1
+    ## 3   2    NA
+    ## 4   1  36.7
+    ## 5   4  33.0
+    ## 6   2  13.6
+
+Assessing the number of missing values again.
+
+``` r
+colSums(is.na(final_table_dum))
+```
+
+    ##  loc.clemson   loc.tifton   gen.dasher gen.guardian gen.poinsett   gen.sprint 
+    ##            0            0            0            0            0            0 
+    ##          row          col        yield 
+    ##            0            0            2
+
+Imputation using bagging of decision trees.
+
+``` r
+set.seed(123)
+
+imputation.model <- preProcess(final_table_dum, method = "bagImpute")
+imputed.final.table <- imputation.model %>% predict(final_table_dum)
+imputed.final.table
+```
+
+    ##    loc.clemson loc.tifton gen.dasher gen.guardian gen.poinsett gen.sprint row
+    ## 1            1          0          1            0            0          0   1
+    ## 2            1          0          1            0            0          0   2
+    ## 3            1          0          1            0            0          0   3
+    ## 4            1          0          1            0            0          0   4
+    ## 5            1          0          0            1            0          0   1
+    ## 6            1          0          0            1            0          0   2
+    ## 7            1          0          0            1            0          0   3
+    ## 8            1          0          0            1            0          0   4
+    ## 9            1          0          0            0            1          0   1
+    ## 10           1          0          0            0            1          0   2
+    ## 11           1          0          0            0            1          0   3
+    ## 12           1          0          0            0            1          0   4
+    ## 13           1          0          0            0            0          1   1
+    ## 14           1          0          0            0            0          1   2
+    ## 15           1          0          0            0            0          1   3
+    ## 16           1          0          0            0            0          1   4
+    ## 17           0          1          1            0            0          0   1
+    ## 18           0          1          1            0            0          0   2
+    ## 19           0          1          1            0            0          0   3
+    ## 20           0          1          1            0            0          0   4
+    ## 21           0          1          0            1            0          0   1
+    ## 22           0          1          0            1            0          0   2
+    ## 23           0          1          0            1            0          0   3
+    ## 24           0          1          0            1            0          0   4
+    ## 25           0          1          0            0            1          0   1
+    ## 26           0          1          0            0            1          0   2
+    ## 27           0          1          0            0            1          0   3
+    ## 28           0          1          0            0            1          0   4
+    ## 29           0          1          0            0            0          1   1
+    ## 30           0          1          0            0            0          1   2
+    ## 31           0          1          0            0            0          1   3
+    ## 32           0          1          0            0            0          1   4
+    ##    col    yield
+    ## 1    3 44.20000
+    ## 2    4 54.10000
+    ## 3    2 33.28960
+    ## 4    1 36.70000
+    ## 5    4 33.00000
+    ## 6    2 13.60000
+    ## 7    1 44.10000
+    ## 8    3 30.28232
+    ## 9    1 11.50000
+    ## 10   3 22.40000
+    ## 11   4 30.30000
+    ## 12   2 21.50000
+    ## 13   2 15.10000
+    ## 14   1 20.30000
+    ## 15   3 41.30000
+    ## 16   4 27.10000
+    ## 17   3 53.54630
+    ## 18   4 37.52200
+    ## 19   2 49.39430
+    ## 20   1 61.47580
+    ## 21   4 34.70260
+    ## 22   2 29.13000
+    ## 23   1 40.24230
+    ## 24   3 50.79300
+    ## 25   1 36.57490
+    ## 26   3 24.66960
+    ## 27   4 30.74890
+    ## 28   2 40.06610
+    ## 29   2 35.07710
+    ## 30   1 43.30400
+    ## 31   3 38.42510
+    ## 32   4 39.91190
+
+Overwrite the “yield” of the final\_table.
+
+``` r
+final_table$yield <- imputed.final.table[, 9]
+```
+
+Checking randomly selected 10 rows from the dataset. The imputation has
+been successful.
+
+``` r
+sample_n(final_table, 10)
+```
+
+    ##        loc      gen row col    yield
+    ## 1  clemson   sprint   2   1 20.30000
+    ## 2  clemson guardian   4   3 30.28232
+    ## 3  clemson guardian   3   1 44.10000
+    ## 4  clemson   dasher   3   2 33.28960
+    ## 5   tifton poinsett   3   4 30.74890
+    ## 6  clemson   sprint   1   2 15.10000
+    ## 7   tifton poinsett   1   1 36.57490
+    ## 8   tifton   sprint   4   4 39.91190
+    ## 9   tifton poinsett   4   2 40.06610
+    ## 10  tifton guardian   1   4 34.70260
+
+## 5. Data “health check”
 
 There are no missing values in the dataset by examining the variables
 “n\_missing” and “complete\_rate” of following table.
@@ -428,8 +770,8 @@ Data summary
 
 | skim\_variable | n\_missing | complete\_rate | ordered | n\_unique | top\_counts                    |
 |:---------------|-----------:|---------------:|:--------|----------:|:-------------------------------|
-| loc            |          0 |              1 | FALSE   |         2 | Cle: 16, Tif: 16               |
-| gen            |          0 |              1 | FALSE   |         4 | Das: 8, Gua: 8, Poi: 8, Spr: 8 |
+| loc            |          0 |              1 | FALSE   |         2 | cle: 16, tif: 16               |
+| gen            |          0 |              1 | FALSE   |         4 | das: 8, gua: 8, poi: 8, spr: 8 |
 
 **Variable type: numeric**
 
@@ -437,9 +779,10 @@ Data summary
 |:---------------|-----------:|---------------:|------:|------:|-----:|------:|------:|------:|------:|
 | row            |          0 |              1 |  2.50 |  1.14 |  1.0 |  1.75 |  2.50 |  3.25 |  4.00 |
 | col            |          0 |              1 |  2.50 |  1.14 |  1.0 |  1.75 |  2.50 |  3.25 |  4.00 |
-| yield          |          0 |              1 | 35.74 | 12.16 | 11.5 | 28.62 | 36.64 | 43.50 | 61.48 |
+| yield          |          0 |              1 | 35.14 | 12.02 | 11.5 | 28.62 | 35.83 | 41.80 | 61.48 |
 
-Following code checks the data and variable types - All good.
+All data are with correct type that are readied for machine learning
+prediction.
 
 ``` r
 glimpse(final_table)
@@ -447,11 +790,11 @@ glimpse(final_table)
 
     ## Rows: 32
     ## Columns: 5
-    ## $ loc   <fct> Clemson, Clemson, Clemson, Clemson, Clemson, Clemson, Clemson, C~
-    ## $ gen   <fct> Dasher, Dasher, Dasher, Dasher, Guardian, Guardian, Guardian, Gu~
+    ## $ loc   <fct> clemson, clemson, clemson, clemson, clemson, clemson, clemson, c~
+    ## $ gen   <fct> dasher, dasher, dasher, dasher, guardian, guardian, guardian, gu~
     ## $ row   <dbl> 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2~
     ## $ col   <dbl> 3, 4, 2, 1, 4, 2, 1, 3, 1, 3, 4, 2, 2, 1, 3, 4, 3, 4, 2, 1, 4, 2~
-    ## $ yield <dbl> 44.2000, 54.1000, 47.2000, 36.7000, 33.0000, 13.6000, 44.1000, 3~
+    ## $ yield <dbl> 44.20000, 54.10000, 33.28960, 36.70000, 33.00000, 13.60000, 44.1~
 
 I can clearly see that there are two location “Clemson” and “Tifton” as
 well as 4 cucumber genotypes represented by “gen”. Both variables have
@@ -462,11 +805,11 @@ summary(final_table)
 ```
 
     ##       loc           gen         row            col           yield      
-    ##  Clemson:16   Dasher  :8   Min.   :1.00   Min.   :1.00   Min.   :11.50  
-    ##  Tifton :16   Guardian:8   1st Qu.:1.75   1st Qu.:1.75   1st Qu.:28.62  
-    ##               Poinsett:8   Median :2.50   Median :2.50   Median :36.64  
-    ##               Sprint  :8   Mean   :2.50   Mean   :2.50   Mean   :35.74  
-    ##                            3rd Qu.:3.25   3rd Qu.:3.25   3rd Qu.:43.50  
+    ##  clemson:16   dasher  :8   Min.   :1.00   Min.   :1.00   Min.   :11.50  
+    ##  tifton :16   guardian:8   1st Qu.:1.75   1st Qu.:1.75   1st Qu.:28.62  
+    ##               poinsett:8   Median :2.50   Median :2.50   Median :35.83  
+    ##               sprint  :8   Mean   :2.50   Mean   :2.50   Mean   :35.14  
+    ##                            3rd Qu.:3.25   3rd Qu.:3.25   3rd Qu.:41.80  
     ##                            Max.   :4.00   Max.   :4.00   Max.   :61.48
 
 This project is not meant to draw graphs but I am drawing one to inspect
@@ -484,7 +827,7 @@ test <- cbind(group, test)
 
 ggplot(test, aes(x = fct_reorder(gen, yield), y = yield, fill = group)) +
   geom_boxplot() +
-  facet_wrap(~ group) +
+  facet_wrap(~ group, scales = "free_x") +
   theme_bw() +
   theme(legend.position = "none",
         strip.text = element_text(size = 12),
@@ -496,10 +839,12 @@ ggplot(test, aes(x = fct_reorder(gen, yield), y = yield, fill = group)) +
        title = "Comparing Final Table with the Original to Check for Disparity")
 ```
 
-![](cleaning_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](cleaning_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
 
-Both tables are identical which indicates that the data cleaning tasks
-of this project have been successful.
+There were two missing values in guardian and dasher of final\_table
+filled up by estimates from the imputation model. That is why the
+guardian and dasher of two dataset seems a little bit different.
+However, the difference is minor and not dramatic.
 
 ## 5 CONCLUSION
 
