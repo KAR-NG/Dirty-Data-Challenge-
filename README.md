@@ -1,10 +1,12 @@
 # Dirty Data Challenge 
 
-Clean, manipulate, transform, and join 4 messy datasets by R. 
+4 messy tables were cleaned and maniputed using techqniues in text manipulation, imputation using bagged decision trees, pivoting, various transformation techqniues, information loss assessment, and finally combined and transformed into an end structure that is appropriate for storage or any analysis. 
+
+
 
 ***
 
-![pic4_thumbnail](https://user-images.githubusercontent.com/81752452/134460755-bd910373-da61-45df-8045-1db22fb0ff90.JPG)
+![pic4_thumbnail](https://user-images.githubusercontent.com/81752452/135748776-b950cba0-b695-4f2b-8bbd-07a70d9a0bfa.png)
 
 
 ***
